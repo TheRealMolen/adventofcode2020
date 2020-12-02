@@ -4,7 +4,7 @@
 
 
 struct Policy {
-    int lo, hi;
+    int64_t lo, hi;
     char letter;
 
     Policy() = default;
@@ -14,13 +14,13 @@ struct Policy {
         is >> lo >> dash >> hi >> letter >> colon;
     }
 
-    bool isSatisfiedBy(const string& pwd)
+    bool isSatisfiedBy(const string& pwd) const
     {
         auto count = std::count(begin(pwd), end(pwd), letter);
         return count >= lo && count <= hi;
     }
 
-    bool isSatisfiedBy_rule2(const string& pwd)
+    bool isSatisfiedBy_rule2(const string& pwd) const
     {
         bool a = pwd[lo - 1] == letter;
         bool b = pwd[hi - 1] == letter;
@@ -34,7 +34,8 @@ istream& operator>>(istream& is, Policy& policy)
 }
 
 
-int day2(const stringlist& input)
+template<typename RuleFunc>
+int day2_core(const stringlist& input, RuleFunc rule)
 {
     int valid = 0;
 
@@ -45,29 +46,21 @@ int day2(const stringlist& input)
         istringstream is(line);
         is >> pol >> pwd;
 
-        if (pol.isSatisfiedBy(pwd))
+        if (rule(pol, pwd))
             ++valid;
     }
 
     return valid;
 }
 
+int day2(const stringlist& input)
+{
+    return day2_core(input, [](const Policy& pol, const string& pwd) { return pol.isSatisfiedBy(pwd); });
+}
+
 int day2_2(const stringlist& input)
 {
-    int valid = 0;
-
-    for (const auto& line : input)
-    {
-        string pwd;
-        Policy pol;
-        istringstream is(line);
-        is >> pol >> pwd;
-
-        if (pol.isSatisfiedBy_rule2(pwd))
-            ++valid;
-    }
-
-    return valid;
+    return day2_core(input, [](const Policy& pol, const string& pwd) { return pol.isSatisfiedBy_rule2(pwd); });
 }
 
 
