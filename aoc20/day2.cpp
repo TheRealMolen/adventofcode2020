@@ -66,9 +66,14 @@ int day2_2(const stringlist& input)
 
 void day2_test()
 {
-    test(2, day2(READ("1 - 3 a: abcde\n1 - 3 b : cdefg\n2 - 9 c : ccccccccc")));
+    string testInput =
+R"(1 - 3 a: abcde
+1 - 3 b : cdefg
+2 - 9 c : ccccccccc)";
+
+    test(2, day2(READ(testInput)));
     gogogo(day2(LOAD(2)));
 
-    test(1, day2_2(READ("1 - 3 a: abcde\n1 - 3 b : cdefg\n2 - 9 c : ccccccccc")));
+    test(1, day2_2(READ(testInput)));
     gogogo(day2_2(LOAD(2)));
 }
