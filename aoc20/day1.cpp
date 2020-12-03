@@ -50,3 +50,13 @@ int64_t day1_2(const stringlist& input)
 
     return -1;
 }
+
+
+void day1_test()
+{
+    test(514579, day1(READ("1721\n979\n366\n299\n675\n1456")));
+    gogogo(day1(LOAD(1)));
+
+    test(241861950ll, day1_2(READ("1721\n979\n366\n299\n675\n1456")));
+    gogogo(day1_2(LOAD(1)));
+}
