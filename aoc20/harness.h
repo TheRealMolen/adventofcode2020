@@ -172,8 +172,8 @@ extern int gday;
 extern int gpart;
 extern int gtest;
 
-template<typename TResult>
-bool test(TResult shouldbe, TResult result)
+template<typename TResult, typename TShouldBe = TResult>
+bool test(TShouldBe shouldbe, TResult result)
 {
     cout << "day" << gday << ",p" << gpart << ": test " << gtest << ": ";
     gtest++;
