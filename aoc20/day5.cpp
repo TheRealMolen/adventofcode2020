@@ -28,7 +28,7 @@ int day5_2(const stringlist& input)
     vector<uint16_t> ids;
     ids.reserve(input.size());
     transform(begin(input), end(input), back_inserter(ids), calc_seatid);
-    sort(begin(ids), end(ids));
+    ranges::sort(ids);
 
     auto id = ids.front();
     for (auto testId : ids)
@@ -47,7 +47,7 @@ void run_day5()
     test(567u, calc_seatid("BFFFBBFRRR"s));
     test(119u, calc_seatid("FFFBBBFRRR"s));
     test(820u, calc_seatid("BBFFBBFRLL"s));
-    gogogo(day5(LOAD(5)));
+    gogogo(day5(LOAD(5)), 885);
 
-    gogogo(day5_2(LOAD(5)));
+    gogogo(day5_2(LOAD(5)), 623);
 }

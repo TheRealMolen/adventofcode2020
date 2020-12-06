@@ -95,7 +95,7 @@ inline ostream& operator<<(ostream& os, const Garland& g)
 
 
 // -----   STRING LISTS  -----
-class stringlist : public deque<string>
+class stringlist : public vector<string>
 {
 public:
 
