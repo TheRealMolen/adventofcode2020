@@ -6,6 +6,29 @@
 using namespace std;
 
 
+vector<string> split(const string& str, const string& delim)
+{
+    vector<string> tokens;
+
+    auto delim_len = delim.length();
+    size_t offset = 0;
+    for (;;)
+    {
+        auto delim_pos = str.find(delim, offset);
+        auto len = delim_pos == string::npos ? string::npos : delim_pos - offset;
+
+        string token = str.substr(offset, len);
+        tokens.push_back(token);
+
+        if (delim_pos == string::npos)
+            break;
+        offset = delim_pos + delim_len;
+    };
+
+    return tokens;
+}
+
+
 #include <conio.h>
 #include <Windows.h>
 #include <wincon.h>

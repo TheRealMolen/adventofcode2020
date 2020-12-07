@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "harness.h"
 
+
 struct Rule;
 struct ChildRule
 {
@@ -64,26 +65,19 @@ map<string, Rule> read_rules(const stringlist& input)
 
     for (auto& line : input)
     {
-        auto space = line.find(' ');
-        space = line.find(' ', space + 1);
-        auto outer = line.substr(0, space);
-
-        // bags contain
-        space = line.find(' ', space + 1);
-        size_t contents = line.find(' ', space + 1) + 1;
+        auto inout = split(line, "contain");
+        string outer = inout[0].substr(0, inout[0].find("bags")-1);
+        trim(outer);
 
         Rule rule{ outer };
 
-        size_t bagend = line.find("bag", contents);
-        while (1)
+        auto contents = split(inout[1], ",");
+        for (auto& content : contents)
         {
-            string content = line.substr(contents, bagend - contents - 1);
+            trim(content, " ,.");
+            auto lastspace = content.find_last_of(" ");
+            content.erase(content.begin() + lastspace, content.end());
             rule.content_strings.insert(content);
-
-            contents = line.find_first_of(",.", bagend) + 2;
-            bagend = line.find("bag", contents);
-            if (bagend == string::npos)
-                break;
         }
 
         rules.try_emplace(outer, rule);

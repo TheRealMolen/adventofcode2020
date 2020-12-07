@@ -166,6 +166,70 @@ inline string stringfromfile(const string& fname)
 #define LOADSTR(day)    stringfromfile("day" #day ".txt")
 
 
+// ----- string wrangling -----
+vector<string> split(const string& str, const string& delim);
+
+
+// taken from: https://stackoverflow.com/a/217605
+static inline void ltrim(string& s) {
+    s.erase(s.begin(), find_if(s.begin(), s.end(), [](unsigned char ch) {
+        return !isspace(ch);
+        }));
+}
+static inline void ltrim(string& s, const char* chars) {
+    auto pos = s.find_first_not_of(chars);
+    if (pos != string::npos)
+        s.erase(s.begin(), s.begin() + pos);
+}
+
+static inline void rtrim(string& s) {
+    s.erase(find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return !isspace(ch);
+        }).base(), s.end());
+}
+static inline void rtrim(string& s, const char* chars) {
+    auto pos = s.find_last_not_of(chars);
+    if (pos != string::npos)
+        s.erase(s.begin() + pos + 1, s.end());
+}
+
+static inline void trim(string& s) {
+    ltrim(s);
+    rtrim(s);
+}
+static inline void trim(string& s, const char* chars) {
+    ltrim(s, chars);
+    rtrim(s, chars);
+}
+
+static inline string ltrim_copy(string s) {
+    ltrim(s);
+    return s;
+}
+static inline string ltrim_copy(string s, const char* chars) {
+    ltrim(s, chars);
+    return s;
+}
+
+static inline string rtrim_copy(string s) {
+    rtrim(s);
+    return s;
+}
+static inline string rtrim_copy(string s, const char* chars) {
+    rtrim(s, chars);
+    return s;
+}
+
+static inline string trim_copy(string s) {
+    trim(s);
+    return s;
+}
+static inline string trim_copy(string s, const char* chars) {
+    trim(s, chars);
+    return s;
+}
+
+
 
 // ----- day harness -----
 extern int gday;

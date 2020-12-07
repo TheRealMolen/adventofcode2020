@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <ctime>
 #include <deque>
 #include <fstream>
@@ -9,11 +10,12 @@
 #include <iomanip>
 #include <iostream>
 #include <iterator>
-#include <list>
+#include <locale>
 #include <map>
 #include <memory>
 #include <numeric>
 #include <queue>
+#include <regex>
 #include <set>
 #include <sstream>
 #include <string>
