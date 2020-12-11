@@ -51,7 +51,7 @@ int64_t day10_2(const stringlist& input)
     ranges::transform(input, back_inserter(ints), [](const string& line) { return strtoll(line.c_str(), nullptr, 10); });
     ranges::sort(ints);
 
-    int64_t goal = *max_element(begin(ints), end(ints)) + 3;
+    int64_t goal = ints.back() + 3;
     ints.insert(begin(ints), 0);
     ints.push_back(goal);
 
