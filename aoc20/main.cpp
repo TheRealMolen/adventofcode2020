@@ -12,6 +12,8 @@ void run_day5();
 void run_day6();
 void run_day7();
 void run_day8();
+void run_day9();
+void run_day10();
 
 // -------------------------------------------------------------------
 
@@ -31,6 +33,8 @@ int main()
     run_day6();
     run_day7();
     run_day8();
+    run_day9();
+    run_day10();
 
 
     // animate snow falling behind the characters in the console until someone presses a key

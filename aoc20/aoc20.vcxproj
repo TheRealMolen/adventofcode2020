@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="day1.cpp" />
+    <ClCompile Include="day10.cpp" />
     <ClCompile Include="day2.cpp" />
     <ClCompile Include="day3.cpp" />
     <ClCompile Include="day4.cpp" />
@@ -27,6 +28,7 @@
     <ClCompile Include="day6.cpp" />
     <ClCompile Include="day7.cpp" />
     <ClCompile Include="day8.cpp" />
+    <ClCompile Include="day9.cpp" />
     <ClCompile Include="harness.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pch.cpp">
@@ -44,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="data\day1.txt" />
+    <Text Include="data\day10.txt" />
     <Text Include="data\day2.txt" />
     <Text Include="data\day3.txt" />
     <Text Include="data\day3t.txt" />
@@ -53,6 +56,7 @@
     <Text Include="data\day6.txt" />
     <Text Include="data\day7.txt" />
     <Text Include="data\day8.txt" />
+    <Text Include="data\day9.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
