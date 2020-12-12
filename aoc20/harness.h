@@ -142,6 +142,14 @@ public:
         return lst;
     }
 };
+inline ostream& operator<<(ostream& os, const stringlist& lst)
+{
+    for (const auto& s : lst)
+    {
+        os << s << '\n';
+    }
+    return os;
+}
 
 inline string stringfromfile(const string& fname)
 {

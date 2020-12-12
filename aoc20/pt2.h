@@ -15,6 +15,10 @@ struct Pt2
         return *this;
     }
 
+    type operator+(const type& other) const
+    {
+        return type{ x + other.x, y + other.y };
+    }
     type operator*(el_type scalar) const
     {
         return type{ x * scalar, y * scalar };
