@@ -149,9 +149,9 @@ dark blue bags contain 2 dark violet bags.
 dark violet bags contain no other bags.)";
 
     test(4, day7(READ(sample)));
-    gogogo(day7(LOAD(7)));
+    nononoD(day7(LOAD(7)));
 
     test(32, day7_2(READ(sample)));
     test(126, day7_2(READ(sample2)));
-    gogogo(day7_2(LOAD(7)));
+    nononoD(day7_2(LOAD(7)));
 }
