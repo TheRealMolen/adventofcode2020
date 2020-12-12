@@ -52,12 +52,21 @@
     <ClCompile Include="day10.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="day11.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="day12.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="harness.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="pch.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pt2.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -96,6 +105,12 @@
       <Filter>data</Filter>
     </Text>
     <Text Include="data\day10.txt">
+      <Filter>data</Filter>
+    </Text>
+    <Text Include="data\day11.txt">
+      <Filter>data</Filter>
+    </Text>
+    <Text Include="data\day12.txt">
       <Filter>data</Filter>
     </Text>
   </ItemGroup>
