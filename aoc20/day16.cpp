@@ -162,7 +162,7 @@ void add_deduced_index(const string& field, size_t deducedix, FieldIndexMap& ded
                 //cout << "\n**inferred " << other_possible.first << " is ix " << other_possibles.front() << endl;
                 //cout << possibles << endl;
 
-                auto dix = other_possibles.front();
+                [[maybe_unused]] auto dix = other_possibles.front();
                 _ASSERT(ranges::find_if(deduced, [dix](auto& nameix) { return nameix.second == dix; }) == deduced.end());
                 _ASSERT(ranges::find_if(deductions, [dix](auto& nameix) { return nameix.second == dix; }) == deductions.end());
                 deductions.emplace_back(make_pair(other_possible.first, other_possibles.front()));

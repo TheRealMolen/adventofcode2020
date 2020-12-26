@@ -321,10 +321,12 @@ void jumptoday(int day);
 #define nonono(...) skip()
 
 #ifdef _DEBUG
-#define nononoD(...) skip()
+#define nononoD(...) skip("cos it's too slow for debug...")
+#define nestD(...)
 #define nD(expr)
 #else
 #define nononoD(...) gogogo(__VA_ARGS__)
+#define nestD(...) test(__VA_ARGS__)
 #define nD(expr) expr
 #endif
 
