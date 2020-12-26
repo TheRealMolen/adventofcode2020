@@ -11,7 +11,8 @@ def download_input(day):
     with open('../aoc20/data/day%d.txt'%day, 'wt') as outf:
         outf.write(response.text)
 
-#download_input(11)
+for day in range(21,24):
+    download_input(day)
 
 
 def run_day12():
@@ -83,5 +84,5 @@ def run_day12():
     print(day12_2(input.split('\n')))
 
 
-print('-------- day 12 ---------')
-run_day12()
+#print('-------- day 12 ---------')
+#run_day12()

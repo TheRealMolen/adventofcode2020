@@ -16,6 +16,9 @@ void run_day9();
 void run_day10();
 void run_day11();
 void run_day12();
+void run_day13();
+void run_day15();
+void run_day16();
 
 // -------------------------------------------------------------------
 
@@ -39,7 +42,13 @@ int main()
     run_day10();
     run_day11();
     run_day12();
+    run_day13();
 
+    // day14 in python
+    skip("cos it's in python"); skip("cos it's in python");
+
+    run_day15();
+    run_day16();
 
     // animate snow falling behind the characters in the console until someone presses a key
     return twinkleforever();
