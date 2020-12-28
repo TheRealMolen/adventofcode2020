@@ -21,6 +21,7 @@ void run_day15();
 void run_day16();
 void run_day17();
 void run_day18();
+void run_day19();
 
 // -------------------------------------------------------------------
 
@@ -53,6 +54,7 @@ int main()
     run_day16();
     run_day17();
     run_day18();
+    run_day19();
 
     // animate snow falling behind the characters in the console until someone presses a key
     return twinkleforever();
