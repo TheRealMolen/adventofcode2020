@@ -1,5 +1,8 @@
 #pragma once
 
+#include <ostream>
+
+
 template<typename T>
 struct Pt2
 {
@@ -39,3 +42,12 @@ struct Pt2
 
 using Pt2i = Pt2<int>;
 using Pt2d = Pt2<double>;
+using Pt2i16 = Pt2<int16_t>;
+
+
+template<typename T>
+ostream& operator<<(ostream& os, const Pt2<T>& pt)
+{
+    os << "(" << pt.x << ", " << pt.y << ")";
+    return os;
+}
