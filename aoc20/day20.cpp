@@ -10,20 +10,20 @@ struct Tile
 
     enum Boundary : uint8_t
     {
-        N, E, S, W, Nf, Ef, Sf, Wf,
+        N, E, S, W, 
         NumBoundaries,
     };
 
     int m_id;
     vector<string> m_raw;
-    array<uint16_t,NumBoundaries> m_bounds;   // NESW then flipped NESW
+    array<uint16_t,NumBoundaries> m_bounds;   // NESW
 
     explicit Tile(stringlist::const_iterator& itinput);
-    Tile(const Tile& other, Boundary top);
+    Tile(const Tile& other, size_t rotations, bool hflip, bool vflip);
     void update_bounds();
 
-    static uint16_t parse_boundary(const string& str, bool flipped);
     string get_column(size_t col) const;
+    string get_column(size_t ix, const vector<string>& raw) const;
 };
 
 ostream& operator<<(ostream& os, const Tile& t)
@@ -35,12 +35,31 @@ ostream& operator<<(ostream& os, const Tile& t)
 }
 
 
+
+uint16_t parse_boundary(const string& str)
+{
+    uint16_t boundary = 0;
+    uint16_t bit = (1 << (Tile::Size - 1));
+    for (uint32_t i = 0; i < Tile::Size; ++i, bit >>= 1)
+    {
+        if (str[i] == '#')
+            boundary |= bit;
+    }
+
+    return boundary;
+}
+
+// reverse the bits in a 10bit int
+uint16_t reverse_boundary(uint16_t a)
+{
+    uint16_t b = ((a & 0x3e0) >> 5) | ((a & 0x1f) << 5);
+    uint16_t c = ((b & 0x318) >> 3) | /*(b & 0x84) |*/ ((b & 0x63) << 3);
+    uint16_t d = ((c & 0x252) >> 1) | (b & 0x84) | ((c & 0x129) << 1);
+    return d;
+}
+
 static constexpr Pt2i16 kBoundaryDirections[] =
 {
-    { 0, -1 },
-    { 1, 0 },
-    { 0, 1 },
-    { -1, 0 },
     { 0, -1 },
     { 1, 0 },
     { 0, 1 },
@@ -51,22 +70,9 @@ inline constexpr Pt2i16 boundary_dir(int bound)
     return kBoundaryDirections[(int)bound];
 }
 
-inline constexpr Tile::Boundary neg_boundary(int a)
+inline constexpr uint16_t add_boundaries(uint16_t a, uint16_t b)
 {
-    return Tile::Boundary((a & 4) | (-a & 3));
-}
-inline constexpr Tile::Boundary add_boundaries(int a, int b)
-{
-    int flipped = ((a & 4) ^ (b & 4));
-    return Tile::Boundary(flipped | ((a + b) & 0x3));
-}
-inline constexpr Tile::Boundary add_boundaries(int a, int b, int c)
-{
-    return add_boundaries(add_boundaries(a, b), c);
-}
-inline constexpr Tile::Boundary add_boundaries(int a, int b, int c, int d)
-{
-    return add_boundaries(add_boundaries(a, b, c), d);
+    return ((b - a + 2 + 4) & 0x3);
 }
 
 
@@ -78,31 +84,13 @@ string Tile::get_column(size_t ix) const
     ranges::transform(m_raw, column.begin(), [ix](const string& row) { return row[ix]; });
     return column;
 }
-
-uint16_t Tile::parse_boundary(const string& str, bool flipped)
+string Tile::get_column(size_t ix, const vector<string>& raw) const
 {
-    uint16_t boundary = 0;
+    _ASSERT(ix < Size);
 
-    if (!flipped)
-    {
-        uint16_t bit = (1 << (Size - 1));
-        for (uint32_t i = 0; i < Size; ++i, bit >>= 1)
-        {
-            if (str[i] == '#')
-                boundary |= bit;
-        }
-    }
-    else
-    {
-        uint16_t bit = 1;
-        for (uint32_t i = 0; i < Size; ++i, bit <<= 1)
-        {
-            if (str[i] == '#')
-                boundary |= bit;
-        }
-    }
-
-    return boundary;
+    string column(Size, '.');
+    ranges::transform(raw, column.begin(), [ix](const string& row) { return row[ix]; });
+    return column;
 }
 
 
@@ -112,80 +100,65 @@ Tile::Tile(stringlist::const_iterator& itinput)
     ++itinput;
 
     copy(itinput, itinput + Size, back_inserter(m_raw));
-    ranges::reverse(m_raw);
+    ranges::reverse(m_raw); // seems like sample input was vflipped before doing anything else
     itinput += Size;
 
     update_bounds();
 }
 
-Tile::Tile(const Tile& other, Boundary top)
+Tile::Tile(const Tile& other, size_t rotations, bool hflip, bool vflip)
     : m_id(other.m_id)
 {
-    switch(top)
+    vector<string> otherraw(other.m_raw);
+
+    if (vflip)
+        ranges::reverse(otherraw);
+
+    if (hflip)
     {
-    case N:
-        copy(other.m_raw.begin(), other.m_raw.end(), back_inserter(m_raw));
+        for (string& row : otherraw)
+            ranges::reverse(row);
+    }
+
+    switch (rotations)
+    {
+    case 0:
+        copy(otherraw.begin(), otherraw.end(), back_inserter(m_raw));
         break;
 
-    case S:
-        for (auto itrow = other.m_raw.rbegin(); itrow != other.m_raw.rend(); ++itrow)
+    case 1:
+        for (size_t col = Size - 1; col < Size; --col)
+            m_raw.emplace_back(get_column(col, otherraw));
+        break;
+
+    case 2:
+        for (auto itrow = otherraw.rbegin(); itrow != otherraw.rend(); ++itrow)
             m_raw.emplace_back(itrow->rbegin(), itrow->rend());
         break;
 
-    case E:
-        for (size_t col = Size - 1; col < Size; --col)
-            m_raw.emplace_back(other.get_column(col));
-        break;
-
-    case W:
+    case 3:
         for (size_t col = 0; col < Size; ++col)
         {
-            string c = other.get_column(col);
+            string c = get_column(col, otherraw);
             m_raw.emplace_back(c.rbegin(), c.rend());
         }
-        break;
-
-    case Nf:
-        for (const string& row : other.m_raw)
-            m_raw.emplace_back(row.rbegin(), row.rend());
-        break;
-
-    case Sf:
-        copy(other.m_raw.rbegin(), other.m_raw.rend(), back_inserter(m_raw));
-        break;
-
-    case Ef:
-        for (size_t col = Size - 1; col < Size; --col)
-        {
-            string c = other.get_column(col);
-            m_raw.emplace_back(c.rbegin(), c.rend());
-        }
-        break;
-
-    case Wf:
-        for (size_t col = 0; col < Size; ++col)
-            m_raw.emplace_back(other.get_column(col));
         break;
 
     default:
-        throw "wtaf";
+        _ASSERT(!"is impossible");
+        break;
     }
-
 
     update_bounds();
 }
 
 void Tile::update_bounds()
 {
-    m_bounds[N] = parse_boundary(m_raw.front(), false);
-    m_bounds[S] = parse_boundary(m_raw.back(), false);
-    m_bounds[Nf] = parse_boundary(m_raw.front(), true);
-    m_bounds[Sf] = parse_boundary(m_raw.back(), true);
-
-    m_bounds[W] = parse_boundary(get_column(0), false);
-    m_bounds[E] = parse_boundary(get_column(Size - 1), false);
-    m_bounds[Wf] = parse_boundary(get_column(0), true);
-    m_bounds[Ef] = parse_boundary(get_column(Size - 1), true);
+    // assume we're rotating
+    m_bounds[N] = parse_boundary(m_raw.front());
+    m_bounds[E] = parse_boundary(get_column(Size - 1));
+    m_bounds[S] = reverse_boundary(parse_boundary(m_raw.back()));
+    m_bounds[W] = reverse_boundary(parse_boundary(get_column(0)));
 }
 
 
@@ -264,8 +237,24 @@ vector<PlacedTile> Image::place() const
         cout << endl;
     };
 
+    for (auto i = m_tiles.begin(); i+1 != m_tiles.end(); ++i)
+    {
+        for (int rot = 0; rot < 4; ++rot)
+        {
+            auto edge = i->m_bounds[rot];
+            auto matching = count_if(i + 1, m_tiles.end(), [edge](const auto& tile)
+                {
+                    return ranges::find_if(tile.m_bounds, [edge](const auto& bound)
+                        {
+                            return (edge == bound) || (edge == reverse_boundary(bound));
+                        }) != tile.m_bounds.end();
+                });
+            _ASSERT(matching <= 1);
+        }
+    }
+
     // place the first tile at 0,0
-    placed.emplace_back(make_unique<Tile>(*open.front(), Tile::N), Pt2i16{ 0, 0 });
+    placed.emplace_back(make_unique<Tile>(*open.front(), 0, false, false), Pt2i16{ 0, 0 });
     place_in_grid(placed.back());
     open.pop_front();
 
@@ -276,27 +265,49 @@ vector<PlacedTile> Image::place() const
         {
             const auto& placed_tile = *itplaced_tile;
 
-            for (uint16_t ourside = 0; ourside < Tile::NumBoundaries; ++ourside)
+            for (uint16_t ourrots = 0; ourrots < 4; ++ourrots)
             {
-                uint16_t ourbound = placed_tile.tile->m_bounds[ourside];
+                uint16_t ourbound = placed_tile.tile->m_bounds[ourrots];
                 for (auto ittile = open.begin(); ittile != open.end(); ++ittile)
                 {
                     const Tile* ptile = *ittile;
 
-                    for (uint16_t theirside = 0; theirside < Tile::NumBoundaries; ++theirside)
+                    for (uint16_t theirrots = 0; theirrots < 4; ++theirrots)
                     {
-                        if (ptile->m_bounds[theirside] == ourbound)
+                        if (ptile->m_bounds[theirrots] == reverse_boundary(ourbound))
                         {
                             cout << "placing tile " << ptile->m_id << " beside " << placed_tile.tile->m_id << endl;
-                            Pt2i16 pos = placed_tile.pos + boundary_dir(ourside);
-                            Tile::Boundary newtop = add_boundaries(ourside, 2, neg_boundary(theirside));
+                            Pt2i16 pos = placed_tile.pos + boundary_dir(ourrots);
+                            uint16_t newrots = add_boundaries(ourrots, theirrots);
                             cout << "    old tile " << placed_tile.tile->m_id << " is at " << placed_tile.pos << endl;
-                            cout << "    matched old side " << ourside << " to new side " << theirside << endl;
-                            cout << "    new tile placed at " << pos << ", and top is " << (int)newtop << endl;
+                            cout << "    matched old side " << ourrots << " to new side " << theirrots << endl;
+                            cout << "    new tile placed at " << pos << ", and top is " << (int)newrots << endl;
                             cout << "    old tile: " << *placed_tile.tile << endl;
                             cout << "    raw new tile: " << *ptile << endl;
 
-                            placed.emplace_back(make_unique<Tile>(*ptile, (Tile::Boundary)newtop), pos);
+                            placed.emplace_back(make_unique<Tile>(*ptile, newrots, false, false), pos);
+                            cout << "    placed tile: " << *placed.back().tile << endl;
+                            place_in_grid(placed.back());
+
+                            open.erase(ittile);
+
+                            goto found_tile;
+                        }
+                        else if (ptile->m_bounds[theirrots] == ourbound)
+                        {
+                            cout << "placing tile " << ptile->m_id << " FLIPPED beside " << placed_tile.tile->m_id << endl;
+                            Pt2i16 pos = placed_tile.pos + boundary_dir(ourrots);
+                            uint16_t newrots = add_boundaries(ourrots, theirrots);
+                            cout << "    old tile " << placed_tile.tile->m_id << " is at " << placed_tile.pos << endl;
+                            cout << "    matched old side " << ourrots << " to FLIPPED new side " << theirrots << endl;
+                            cout << "    new tile placed at " << pos << ", and top is " << (int)newrots << endl;
+                            cout << "    old tile: " << *placed_tile.tile << endl;
+                            cout << "    raw new tile: " << *ptile << endl;
+
+                            bool vflip = (theirrots & 1) != 0;
+                            bool hflip = !vflip;
+
+                            placed.emplace_back(make_unique<Tile>(*ptile, newrots, hflip, vflip), pos);
                             cout << "    placed tile: " << *placed.back().tile << endl;
                             place_in_grid(placed.back());
 
@@ -395,10 +406,6 @@ int day20_2(const stringlist& input)
 
 void run_day20()
 {
-    test(Tile::E, add_boundaries(Tile::N, Tile::E));
-    test(Tile::S, add_boundaries(Tile::E, Tile::E));
-    test(Tile::Sf, add_boundaries(Tile::E, Tile::Ef));
-    test(Tile::S, add_boundaries(Tile::W, Tile::W));
     test(20899048083289, day20(LOAD(20t)));
     gogogo(day20(LOAD(20)));
 
