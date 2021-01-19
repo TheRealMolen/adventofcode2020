@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "chargrid.h"
 #include "harness.h"
 #include "pt2.h"
 
@@ -15,22 +16,20 @@ struct Tile
     };
 
     int m_id;
-    vector<string> m_raw;
+    CharGrid m_raw;
     array<uint16_t,NumBoundaries> m_bounds;   // NESW
 
     explicit Tile(stringlist::const_iterator& itinput);
-    Tile(const Tile& other, size_t rotations, bool hflip, bool vflip);
+    Tile(const Tile& other, uint32_t rotations, bool hflip, bool vflip);
     void update_bounds();
 
-    string get_column(size_t col) const;
-    string get_column(size_t ix, const vector<string>& raw) const;
+    string get_column(size_t col) const { return ::get_column(col, m_raw); }
 };
 
 ostream& operator<<(ostream& os, const Tile& t)
 {
     os << "Tile " << t.m_id << ":\n";
-    for (const auto& row : t.m_raw)
-        os << row << '\n';
+    os << t.m_raw;
     return os;
 }
 
@@ -76,24 +75,6 @@ inline constexpr uint16_t add_boundaries(uint16_t a, uint16_t b)
 }
 
 
-string Tile::get_column(size_t ix) const
-{
-    _ASSERT(ix < Size);
-
-    string column(Size, '.');
-    ranges::transform(m_raw, column.begin(), [ix](const string& row) { return row[ix]; });
-    return column;
-}
-string Tile::get_column(size_t ix, const vector<string>& raw) const
-{
-    _ASSERT(ix < Size);
-
-    string column(Size, '.');
-    ranges::transform(raw, column.begin(), [ix](const string& row) { return row[ix]; });
-    return column;
-}
-
-
 Tile::Tile(stringlist::const_iterator& itinput)
 {
     sscanf_s(itinput->c_str(), "Tile %d:", &m_id);
@@ -106,48 +87,17 @@ Tile::Tile(stringlist::const_iterator& itinput)
     update_bounds();
 }
 
-Tile::Tile(const Tile& other, size_t rotations, bool hflip, bool vflip)
+Tile::Tile(const Tile& other, uint32_t rotations, bool hflip, bool vflip)
     : m_id(other.m_id)
 {
-    vector<string> otherraw(other.m_raw);
+    CharGrid grid(other.m_raw);
 
     if (vflip)
-        ranges::reverse(otherraw);
-
+        ::vflip(grid);
     if (hflip)
-    {
-        for (string& row : otherraw)
-            ranges::reverse(row);
-    }
+        ::hflip(grid);
 
-    switch (rotations)
-    {
-    case 0:
-        copy(otherraw.begin(), otherraw.end(), back_inserter(m_raw));
-        break;
-
-    case 1:
-        for (size_t col = Size - 1; col < Size; --col)
-            m_raw.emplace_back(get_column(col, otherraw));
-        break;
-
-    case 2:
-        for (auto itrow = otherraw.rbegin(); itrow != otherraw.rend(); ++itrow)
-            m_raw.emplace_back(itrow->rbegin(), itrow->rend());
-        break;
-
-    case 3:
-        for (size_t col = 0; col < Size; ++col)
-        {
-            string c = get_column(col, otherraw);
-            m_raw.emplace_back(c.rbegin(), c.rend());
-        }
-        break;
-
-    default:
-        _ASSERT(!"is impossible");
-        break;
-    }
+    m_raw = ::rotate(grid, rotations);
 
     update_bounds();
 }
@@ -198,7 +148,7 @@ struct Image
 
     Image(const stringlist& input);
 
-    [[nodiscard]] vector<PlacedTile> place() const;
+    [[nodiscard]] map<Pt2i16, PlacedTile> place() const;
 };
 
 Image::Image(const stringlist& input)
@@ -208,41 +158,19 @@ Image::Image(const stringlist& input)
 }
 
 
-vector<PlacedTile> Image::place() const
+map<Pt2i16, PlacedTile> Image::place() const
 {
     deque<const Tile*> open;
     ranges::transform(m_tiles, back_inserter(open), [](const Tile& t) { return &t; });
 
-    vector<PlacedTile> placed;
-    auto size = m_size;
-    vector<int> grid(size * size * 4, 0);
-    auto place_in_grid = [&grid, size](const PlacedTile& tile)
-    {
-        _ASSERT(abs(tile.pos.x) < size);
-        _ASSERT(abs(tile.pos.y) < size);
-        int x = tile.pos.x + size;
-        int y = tile.pos.y + size;
-        _ASSERT(grid[x + (2 * size * y)] == 0);
-        grid[x + (2 * size * y)] = tile.tile->m_id;
-
-        cout << "--------\n";
-        for (y = 0; y < 2 * size; ++y)
-        {
-            for (x = 0; x < 2 * size; ++x)
-            {
-                cout << setw(4) << setfill(' ') << grid[x + (2 * size * y)] << ' ';
-            }
-            cout << '\n';
-        }
-        cout << endl;
-    };
+    map<Pt2i16, PlacedTile> placed;
 
     for (auto i = m_tiles.begin(); i+1 != m_tiles.end(); ++i)
     {
         for (int rot = 0; rot < 4; ++rot)
         {
             auto edge = i->m_bounds[rot];
-            auto matching = count_if(i + 1, m_tiles.end(), [edge](const auto& tile)
+            [[maybe_unused]] auto matching = count_if(i + 1, m_tiles.end(), [edge](const auto& tile)
                 {
                     return ranges::find_if(tile.m_bounds, [edge](const auto& bound)
                         {
@@ -254,16 +182,15 @@ vector<PlacedTile> Image::place() const
     }
 
     // place the first tile at 0,0
-    placed.emplace_back(make_unique<Tile>(*open.front(), 0, false, false), Pt2i16{ 0, 0 });
-    place_in_grid(placed.back());
+    placed.try_emplace(Pt2i16{ 0, 0 }, make_unique<Tile>(*open.front(), 0, false, false), Pt2i16{ 0, 0 });
     open.pop_front();
 
     while (!open.empty())
     {
         // look for one of our boundaries that matches an open tile
-        for (auto itplaced_tile = placed.rbegin(); itplaced_tile != placed.rend(); ++itplaced_tile)
+        for (auto itplaced_tile = placed.begin(); itplaced_tile != placed.end(); ++itplaced_tile)
         {
-            const auto& placed_tile = *itplaced_tile;
+            const auto& placed_tile = itplaced_tile->second;
 
             for (uint16_t ourrots = 0; ourrots < 4; ++ourrots)
             {
@@ -276,41 +203,23 @@ vector<PlacedTile> Image::place() const
                     {
                         if (ptile->m_bounds[theirrots] == reverse_boundary(ourbound))
                         {
-                            cout << "placing tile " << ptile->m_id << " beside " << placed_tile.tile->m_id << endl;
                             Pt2i16 pos = placed_tile.pos + boundary_dir(ourrots);
                             uint16_t newrots = add_boundaries(ourrots, theirrots);
-                            cout << "    old tile " << placed_tile.tile->m_id << " is at " << placed_tile.pos << endl;
-                            cout << "    matched old side " << ourrots << " to new side " << theirrots << endl;
-                            cout << "    new tile placed at " << pos << ", and top is " << (int)newrots << endl;
-                            cout << "    old tile: " << *placed_tile.tile << endl;
-                            cout << "    raw new tile: " << *ptile << endl;
 
-                            placed.emplace_back(make_unique<Tile>(*ptile, newrots, false, false), pos);
-                            cout << "    placed tile: " << *placed.back().tile << endl;
-                            place_in_grid(placed.back());
-
+                            placed.try_emplace(pos, make_unique<Tile>(*ptile, newrots, false, false), pos);
                             open.erase(ittile);
 
                             goto found_tile;
                         }
                         else if (ptile->m_bounds[theirrots] == ourbound)
                         {
-                            cout << "placing tile " << ptile->m_id << " FLIPPED beside " << placed_tile.tile->m_id << endl;
                             Pt2i16 pos = placed_tile.pos + boundary_dir(ourrots);
                             uint16_t newrots = add_boundaries(ourrots, theirrots);
-                            cout << "    old tile " << placed_tile.tile->m_id << " is at " << placed_tile.pos << endl;
-                            cout << "    matched old side " << ourrots << " to FLIPPED new side " << theirrots << endl;
-                            cout << "    new tile placed at " << pos << ", and top is " << (int)newrots << endl;
-                            cout << "    old tile: " << *placed_tile.tile << endl;
-                            cout << "    raw new tile: " << *ptile << endl;
 
                             bool vflip = (theirrots & 1) != 0;
                             bool hflip = !vflip;
 
-                            placed.emplace_back(make_unique<Tile>(*ptile, newrots, hflip, vflip), pos);
-                            cout << "    placed tile: " << *placed.back().tile << endl;
-                            place_in_grid(placed.back());
-
+                            placed.try_emplace(pos, make_unique<Tile>(*ptile, newrots, hflip, vflip), pos);
                             open.erase(ittile);
 
                             goto found_tile;
@@ -324,71 +233,24 @@ vector<PlacedTile> Image::place() const
         continue;
     }
 
-    
-    //const auto [itminx, itmaxx] = ranges::minmax_element(placed, {}, [](const auto& tile) { return tile.pos.x; });
-    //const auto [itminy, itmaxy] = ranges::minmax_element(placed, {}, [](const auto& tile) { return tile.pos.y; });
-    //auto minx = itminx->pos.x;
-    //auto maxx = itmaxx->pos.x;
-    //auto miny = itminy->pos.y;
-    //auto maxy = itmaxy->pos.y;
-    //for (int y = miny; y <= maxy; ++y)
-    //{
-    //    for (int x = minx; x <= maxx; ++x)
-    //    {
-    //        int64_t bl = ranges::find_if(placed, [=](const auto& tile) { return tile.pos.x == minx && tile.pos.y == miny; });
-    //    }
-    //}
-    cout << "\n\n\n\n\n=======================\n\n";
-    for (const auto& ptile : placed)
-    {
-        cout << "Placed Tile " << ptile.tile->m_id << "  top line: " << ptile.tile->m_raw.front() << "\n";
-    }
-    cout << "\n\n=======================\n" << endl;
-
-
     return placed;
 }
 
 
 int64_t day20(const stringlist& input)
 {
-#if 0
-    stringlist samp{ READ(
- R"(Tile 2473:
-#....####.
-#..#.##...
-#.##..#...
-######.#.#
-.#...#.#.#
-.#########
-.###.#..#.
-########.#
-##...##.#.
-..###.#.#.)") };
-    auto itsamp = samp.cbegin();
-    Tile t(itsamp);
-    for (int i = 0; i < 8; ++i)
-    {
-        Tile t2(t, (Tile::Boundary)i);
-        cout << "------ top = " << i << ":\n" << t2 << endl;
-    }
-    cout << "\n\n\n\n" << endl;
-#endif //0
-
     Image img(input);
     auto placed = img.place();
 
-    const auto [itminx, itmaxx] = ranges::minmax_element(placed, {}, [](const auto& tile) { return tile.pos.x; });
-    const auto [itminy, itmaxy] = ranges::minmax_element(placed, {}, [](const auto& tile) { return tile.pos.y; });
-    auto minx = itminx->pos.x;
-    auto maxx = itmaxx->pos.x;
-    auto miny = itminy->pos.y;
-    auto maxy = itmaxy->pos.y;
+    auto minx = placed.begin()->second.pos.x;
+    auto miny = placed.begin()->second.pos.y;
+    auto maxx = placed.rbegin()->second.pos.x;
+    auto maxy = placed.rbegin()->second.pos.y;
 
-    int64_t bl = ranges::find_if(placed, [=](const auto& tile) { return tile.pos.x == minx && tile.pos.y == miny; })->tile->m_id;
-    int64_t br = ranges::find_if(placed, [=](const auto& tile) { return tile.pos.x == maxx && tile.pos.y == miny; })->tile->m_id;
-    int64_t tl = ranges::find_if(placed, [=](const auto& tile) { return tile.pos.x == minx && tile.pos.y == maxy; })->tile->m_id;
-    int64_t tr = ranges::find_if(placed, [=](const auto& tile) { return tile.pos.x == maxx && tile.pos.y == maxy; })->tile->m_id;
+    int64_t bl = placed.at(Pt2i16{ minx,miny }).tile->m_id;
+    int64_t br = placed.at(Pt2i16{ maxx,miny }).tile->m_id;
+    int64_t tl = placed.at(Pt2i16{ minx,maxy }).tile->m_id;
+    int64_t tr = placed.at(Pt2i16{ maxx,maxy }).tile->m_id;
 
     return bl * br * tl * tr;
 }
@@ -407,7 +269,7 @@ int day20_2(const stringlist& input)
 void run_day20()
 {
     test(20899048083289, day20(LOAD(20t)));
-    gogogo(day20(LOAD(20)));
+    nononoD(day20(LOAD(20)));
 
     //test(-100, day20_2(READ(sample)));
     //gogogo(day20_2(LOAD(20)));

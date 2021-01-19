@@ -50,6 +50,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="chargrid.h" />
     <ClInclude Include="harness.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="pt2.h" />

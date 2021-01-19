@@ -40,6 +40,16 @@ struct Pt2
     }
 };
 
+template<typename T>
+bool operator<(const Pt2<T>& a, const Pt2<T>& b)
+{
+    if (a.x < b.x) return true;
+    if (a.x > b.x) return false;
+    return (a.y < b.y);
+}
+
+
+
 using Pt2i = Pt2<int>;
 using Pt2d = Pt2<double>;
 using Pt2i16 = Pt2<int16_t>;

@@ -90,6 +90,9 @@
     <ClInclude Include="pt2.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="chargrid.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="data\day1.txt">
