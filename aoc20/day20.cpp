@@ -3,21 +3,13 @@
 #include "harness.h"
 #include "pt2.h"
 
-#pragma warning(disable : 26812) // unscoped enum
-
 struct Tile
 {
     static constexpr size_t Size = 10;
 
-    enum Boundary : uint8_t
-    {
-        N, E, S, W, 
-        NumBoundaries,
-    };
-
     int m_id;
     CharGrid m_raw;
-    array<uint16_t,NumBoundaries> m_bounds;   // NESW
+    array<uint16_t,4> m_bounds;   // NESW
 
     explicit Tile(stringlist::const_iterator& itinput);
     Tile(const Tile& other, uint32_t rotations, bool hflip, bool vflip);
@@ -105,10 +97,10 @@ Tile::Tile(const Tile& other, uint32_t rotations, bool hflip, bool vflip)
 void Tile::update_bounds()
 {
     // assume we're rotating
-    m_bounds[N] = parse_boundary(m_raw.front());
-    m_bounds[E] = parse_boundary(get_column(Size - 1));
-    m_bounds[S] = reverse_boundary(parse_boundary(m_raw.back()));
-    m_bounds[W] = reverse_boundary(parse_boundary(get_column(0)));
+    m_bounds[0] = parse_boundary(m_raw.front());
+    m_bounds[1] = parse_boundary(get_column(Size - 1));
+    m_bounds[2] = reverse_boundary(parse_boundary(m_raw.back()));
+    m_bounds[3] = reverse_boundary(parse_boundary(get_column(0)));
 }
 
 
@@ -146,7 +138,7 @@ struct Image
     vector<Tile> m_tiles;
     uint16_t m_size;
 
-    Image(const stringlist& input);
+    explicit Image(const stringlist& input);
 
     [[nodiscard]] map<Pt2i16, PlacedTile> place() const;
 };
@@ -206,7 +198,9 @@ map<Pt2i16, PlacedTile> Image::place() const
                             Pt2i16 pos = placed_tile.pos + boundary_dir(ourrots);
                             uint16_t newrots = add_boundaries(ourrots, theirrots);
 
-                            placed.try_emplace(pos, make_unique<Tile>(*ptile, newrots, false, false), pos);
+                            [[maybe_unused]] auto itplaced = placed.try_emplace(pos, make_unique<Tile>(*ptile, newrots, false, false), pos);
+                            //cout << "placed " << itplaced.first->second.tile->m_id << " at " << pos << "\n";
+                            //cout << itplaced.first->second.tile->m_raw << "\n\n";
                             open.erase(ittile);
 
                             goto found_tile;
@@ -219,7 +213,9 @@ map<Pt2i16, PlacedTile> Image::place() const
                             bool vflip = (theirrots & 1) != 0;
                             bool hflip = !vflip;
 
-                            placed.try_emplace(pos, make_unique<Tile>(*ptile, newrots, hflip, vflip), pos);
+                            [[maybe_unused]] auto itplaced = placed.try_emplace(pos, make_unique<Tile>(*ptile, newrots, hflip, vflip), pos);
+                            //cout << "placed " << itplaced.first->second.tile->m_id << " at " << pos << "\n";
+                            //cout << itplaced.first->second.tile->m_raw << "\n\n";
                             open.erase(ittile);
 
                             goto found_tile;
@@ -234,6 +230,37 @@ map<Pt2i16, PlacedTile> Image::place() const
     }
 
     return placed;
+}
+
+
+CharGrid render(const map<Pt2i16, PlacedTile>& placed)
+{
+    auto minx = placed.begin()->second.pos.x;
+    auto miny = placed.begin()->second.pos.y;
+    auto maxx = placed.rbegin()->second.pos.x;
+    auto maxy = placed.rbegin()->second.pos.y;
+
+    const uint32_t size_in_tiles = maxx - minx + 1;
+    _ASSERT(uint32_t(maxy - miny + 1) == size_in_tiles);
+
+    const size_t tilesize = placed.begin()->second.tile->m_raw.size() - 2;
+    _ASSERT(placed.begin()->second.tile->m_raw.front().size() - 2 == tilesize);
+
+    const size_t size = tilesize * size_in_tiles;
+    CharGrid full(size, string(size, '!'));
+
+    for (auto& [pos, tile] : placed)
+    {
+        auto itrow = full.begin() + (tilesize * (pos.y - miny));
+        size_t offset = tilesize * (pos.x - minx);
+        for (auto it = tile.tile->m_raw.begin() + 1; it != tile.tile->m_raw.end() - 1; ++it)
+        {
+            copy(it->begin()+1, it->end()-1, itrow->begin() + offset);
+            ++itrow;
+        }
+    }
+
+    return full;
 }
 
 
@@ -257,10 +284,11 @@ int64_t day20(const stringlist& input)
 
 int day20_2(const stringlist& input)
 {
-    for (auto& line : input)
-    {
-        (void)line;
-    }
+    Image img(input);
+    auto placed = img.place();
+
+    auto map = render(placed);
+    cout << map << endl;
 
     return -1;
 }
@@ -271,6 +299,6 @@ void run_day20()
     test(20899048083289, day20(LOAD(20t)));
     nononoD(day20(LOAD(20)));
 
-    //test(-100, day20_2(READ(sample)));
+    test(-100, day20_2(LOAD(20t)));
     //gogogo(day20_2(LOAD(20)));
 }

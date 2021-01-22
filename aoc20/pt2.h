@@ -43,9 +43,9 @@ struct Pt2
 template<typename T>
 bool operator<(const Pt2<T>& a, const Pt2<T>& b)
 {
-    if (a.x < b.x) return true;
-    if (a.x > b.x) return false;
-    return (a.y < b.y);
+    if (a.y < b.y) return true;
+    if (a.y > b.y) return false;
+    return (a.x < b.x);
 }
 
 
