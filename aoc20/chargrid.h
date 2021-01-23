@@ -37,7 +37,7 @@ inline CharGrid rotate(const CharGrid& grid, uint32_t turns_anticlockwise)
         break;
 
     case 1:
-        for (size_t col = grid.size() - 1; col < grid.size(); --col)
+        for (size_t col = grid.front().size() - 1; col < grid.front().size(); --col)
             rotated.emplace_back(get_column(col, grid));
         break;
 
@@ -47,7 +47,7 @@ inline CharGrid rotate(const CharGrid& grid, uint32_t turns_anticlockwise)
         break;
 
     case 3:
-        for (size_t col = 0; col < grid.size(); ++col)
+        for (size_t col = 0; col < grid.front().size(); ++col)
         {
             string c = get_column(col, grid);
             rotated.emplace_back(c.rbegin(), c.rend());

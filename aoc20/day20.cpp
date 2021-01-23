@@ -198,9 +198,7 @@ map<Pt2i16, PlacedTile> Image::place() const
                             Pt2i16 pos = placed_tile.pos + boundary_dir(ourrots);
                             uint16_t newrots = add_boundaries(ourrots, theirrots);
 
-                            [[maybe_unused]] auto itplaced = placed.try_emplace(pos, make_unique<Tile>(*ptile, newrots, false, false), pos);
-                            //cout << "placed " << itplaced.first->second.tile->m_id << " at " << pos << "\n";
-                            //cout << itplaced.first->second.tile->m_raw << "\n\n";
+                            placed.try_emplace(pos, make_unique<Tile>(*ptile, newrots, false, false), pos);
                             open.erase(ittile);
 
                             goto found_tile;
@@ -213,9 +211,7 @@ map<Pt2i16, PlacedTile> Image::place() const
                             bool vflip = (theirrots & 1) != 0;
                             bool hflip = !vflip;
 
-                            [[maybe_unused]] auto itplaced = placed.try_emplace(pos, make_unique<Tile>(*ptile, newrots, hflip, vflip), pos);
-                            //cout << "placed " << itplaced.first->second.tile->m_id << " at " << pos << "\n";
-                            //cout << itplaced.first->second.tile->m_raw << "\n\n";
+                            placed.try_emplace(pos, make_unique<Tile>(*ptile, newrots, hflip, vflip), pos);
                             open.erase(ittile);
 
                             goto found_tile;
@@ -238,7 +234,7 @@ CharGrid render(const map<Pt2i16, PlacedTile>& placed)
     auto minx = placed.begin()->second.pos.x;
     auto miny = placed.begin()->second.pos.y;
     auto maxx = placed.rbegin()->second.pos.x;
-    auto maxy = placed.rbegin()->second.pos.y;
+    [[maybe_unused]] auto maxy = placed.rbegin()->second.pos.y;
 
     const uint32_t size_in_tiles = maxx - minx + 1;
     _ASSERT(uint32_t(maxy - miny + 1) == size_in_tiles);
@@ -261,6 +257,107 @@ CharGrid render(const map<Pt2i16, PlacedTile>& placed)
     }
 
     return full;
+}
+
+
+class Monster
+{
+    using Compiled = vector<vector<uint8_t>>;
+
+    CharGrid m_raw;
+    size_t m_width, m_height;
+
+    Compiled compile() const;
+    void set_raw(CharGrid&& grid);
+
+public:
+    Monster()
+    {
+        auto start = READ(
+R"(                  # 
+#    ##    ##    ###
+ #  #  #  #  #  #   )");
+        set_raw(move(start));
+    }
+
+    size_t search(CharGrid& map);
+};
+
+
+void Monster::set_raw(CharGrid&& grid)
+{
+    m_raw = move(grid);
+
+    m_width = m_raw.front().length();
+    m_height = m_raw.size();
+}
+
+Monster::Compiled Monster::compile() const
+{
+    Compiled points(m_raw.size(), vector<uint8_t>{});
+    for (size_t y = 0; y < m_raw.size(); ++y)
+    {
+        auto& row = m_raw[y];
+        for (size_t x = 0; x < row.size(); ++x)
+        {
+            if (row[x] == '#')
+                points[y].push_back(uint8_t(x));
+        }
+    }
+    return points;
+}
+
+size_t Monster::search(CharGrid& map)
+{
+    size_t num_found = 0;
+
+    for (int rot = 0; rot < 8; ++rot)
+    {
+        Compiled points = compile();
+        size_t maph = map.size();
+        size_t mapw = map.front().size();
+        for (size_t y = 0; y < maph - m_height; ++y)
+        {
+            for (size_t x = 0; x < mapw - m_width; ++x)
+            {
+                size_t ty = y;
+                for (const auto& monster_row : points)
+                {
+                    auto& map_row = map[ty];
+                    auto map_it = map_row.begin() + x;
+                    for (uint8_t offset : monster_row)
+                    {
+                        if (*(map_it + offset) != '#')
+                            goto no_monster;
+                    }
+                    ++ty;
+                }
+
+                ++num_found;
+
+                ty = y;
+                for (const auto& monster_row : points)
+                {
+                    auto& map_row = map[ty];
+                    auto map_it = map_row.begin() + x;
+                    for (uint8_t offset : monster_row)
+                    {
+                        *(map_it + offset) = 'O';
+                    }
+                    ++ty;
+                }
+
+            no_monster:
+                x = x;
+            }
+        }
+
+        set_raw(::rotate(m_raw, 1));
+        if (rot == 4)
+            ::hflip(m_raw);
+    }
+
+    return num_found;
 }
 
 
@@ -288,9 +385,19 @@ int day20_2(const stringlist& input)
     auto placed = img.place();
 
     auto map = render(placed);
+
+    Monster monstr;
+    monstr.search(map);
+
     cout << map << endl;
 
-    return -1;
+    size_t roughness = 0;
+    for (const auto& row : map)
+    {
+        roughness += ranges::count(row, '#');
+    }
+
+    return int(roughness);
 }
 
 
@@ -299,6 +406,6 @@ void run_day20()
     test(20899048083289, day20(LOAD(20t)));
     nononoD(day20(LOAD(20)));
 
-    test(-100, day20_2(LOAD(20t)));
-    //gogogo(day20_2(LOAD(20)));
+    test(273, day20_2(LOAD(20t)));
+    nononoD(day20_2(LOAD(20)));
 }
