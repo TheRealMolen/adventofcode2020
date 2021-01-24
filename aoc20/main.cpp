@@ -63,6 +63,7 @@ int main()
     run_day19();
     run_day20();
     run_day21();
+    run_day22();
 
     // animate snow falling behind the characters in the console until someone presses a key
     return twinkleforever();
