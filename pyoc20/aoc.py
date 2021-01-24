@@ -11,7 +11,7 @@ def download_input(day):
     with open('../aoc20/data/day%d.txt'%day, 'wt') as outf:
         outf.write(response.text)
 
-for day in range(21,24):
+for day in range(24,26):
     download_input(day)
 
 
