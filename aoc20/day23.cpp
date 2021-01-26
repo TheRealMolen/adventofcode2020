@@ -16,7 +16,7 @@ string day23(const string& input, int nmoves = 10)
     string pickup;
 
     for (int move = 1; move <= nmoves; ++move)
-    {    
+    {
         auto itpickup = begin(state) + 1;
         pickup.assign(itpickup, itpickup + npickedup);
         state.erase(itpickup, itpickup + npickedup);
@@ -65,36 +65,58 @@ int64_t day23_2(const string& input, int nmoves = 10'000'000)
     size_t curr = 0;
     int pickup[3] = { -1, -1, -1 };
 
+   /* auto pick_up = [&state, &pickup, curr](size_t offs)
+    {
+        size_t ix = (curr + 1 + offs);
+        if (ix >= ncups)
+            ix -= ncups;
+
+        pickup[offs] = state[ix];
+        state[ix] = -1;
+    };*/
+
     for (int move = 1; move <= nmoves; ++move)
     {
         if (move % 10000 == 0)
             cout << "move " << move << "\t/ " << nmoves << endl;
 
-        pickup[0] = (curr + 1 < state.size()) ? state[curr + 1] : state[curr + 1 - state.size()];
-        state.erase(begin(state) + curr + 1);
-        pickup[1] = (curr + 1 < state.size()) ? state[curr + 1] : state[curr + 1 - state.size()];
-        state.erase(begin(state) + curr + 1);
-        pickup[2] = (curr + 1 < state.size()) ? state[curr + 1] : state[curr + 1 - state.size()];
-        state.erase(begin(state) + curr + 1);
+        auto itcup = begin(state) + curr;
+        auto itpickup = itcup + 1;
+        copy(itpickup, itpickup + npickedup, pickup);
+        fill(itpickup, itpickup + npickedup, -1);
 
-        int cup = state[curr];
-        int dest = cup - 1;
+        int dest = *itcup - 1;
         for (;;)
         {
             if (dest < lo) dest = hi;
-            auto itfound = ranges::find(state, uint8_t(dest));
-            if (itfound == end(state))
+            auto itdest = ranges::find(state, dest);
+            if (itdest == end(state))
             {
                 --dest;
                 continue;
             }
 
-            state.insert(itfound + 1, begin(pickup), end(pickup));
+            if (itdest > itcup)
+            {
+                auto itstart = itpickup + npickedup;
+                auto itend = itdest + 1;
+                ::move(itstart, itend, itpickup);
+                ranges::copy(pickup, itend - npickedup);
+            }
+            else
+            {
+                auto itstart = itdest + 1;
+                auto itend = itpickup;
+                ::move(itstart, itend, itstart + npickedup);
+                ranges::copy(pickup, itstart);
+            }
             break;
         }
 
         ++curr;
         if (curr == ncups) curr = 0;
+        else if (curr + npickedup >= ncups)
+            ranges::rotate(state, begin(state) + curr);
     }
 
     auto itone = ranges::find(state, 1);
