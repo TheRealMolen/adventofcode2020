@@ -88,6 +88,9 @@
     <ClCompile Include="day23.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="day24.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="harness.h">
