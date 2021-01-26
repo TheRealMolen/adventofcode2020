@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "harness.h"
 
+#include <ranges>
+
 void kernel(vector<int>& state, const int nmoves)
 {
     const size_t npickedup = 3;
@@ -11,39 +13,6 @@ void kernel(vector<int>& state, const int nmoves)
 
     size_t curr = 0;
     int pickup[3] = { -1, -1, -1 };
-
-    vector<int> indices(ncups + 1, -1);
-    auto reindex_full = [&state, &indices]()
-    {
-        int ix = 0;
-        for (auto cup : state)
-        {
-            indices[cup] = ix;
-            ++ix;
-        }
-    };
-    auto reindex_partial = [&state, &indices](vector<int>::iterator itstart, vector<int>::iterator itend)
-    {
-        int ix = int(distance(begin(state), itstart));
-        while (itstart != itend)
-        {
-            indices[*itstart] = ix;
-            ++ix;
-            ++itstart;
-        }
-    };
-
-    reindex_full();
-
-    /* auto pick_up = [&state, &pickup, curr](size_t offs)
-     {
-         size_t ix = (curr + 1 + offs);
-         if (ix >= ncups)
-             ix -= ncups;
-
-         pickup[offs] = state[ix];
-         state[ix] = -1;
-     };*/
 
     for (int move = 1; move <= nmoves; ++move)
     {
@@ -59,8 +28,6 @@ void kernel(vector<int>& state, const int nmoves)
         for (;;)
         {
             if (dest < lo) dest = hi;
-            //auto itdest = begin(state) + indices[dest];
-            //if (*itdest == -1)
             auto itdest = ranges::find(state, dest);
             if (itdest == end(state))
             {
@@ -73,28 +40,8 @@ void kernel(vector<int>& state, const int nmoves)
                 auto itstart = itpickup + npickedup;
                 auto itend = itdest + 1;
 
-                //::move(itstart, itend, itpickup);
-                auto itin = itstart;
-                auto itout = itpickup;
-                int ix = int(distance(begin(state), itout));
-                for (; itin != itend; ++itin, ++itout, ++ix)
-                {
-                    int x = *itin;
-                    *itout = x;
-                    //indices[x] = ix;
-                }
-
-                //ranges::copy(pickup, itend - npickedup);
-                auto itin2 = begin(pickup);
-                auto itend2 = end(pickup);
-                for (; itin2 != itend2; ++itin2, ++itout, ++ix)
-                {
-                    int x = *itin2;
-                    *itout = x;
-                   // indices[x] = ix;
-                }
-                
-                //reindex_partial(itpickup, itend);
+                ::move(itstart, itend, itpickup);
+                ranges::copy(pickup, itend - npickedup);
             }
             else
             {
@@ -102,7 +49,6 @@ void kernel(vector<int>& state, const int nmoves)
                 auto itend = itpickup;
                 ::move(itstart, itend, itstart + npickedup);
                 ranges::copy(pickup, itstart);
-              // reindex_partial(itstart, itend + npickedup);
 
                 curr += npickedup;
             }
@@ -115,7 +61,6 @@ void kernel(vector<int>& state, const int nmoves)
         {
             ranges::rotate(state, begin(state) + curr);
             curr = 0;
-            //reindex_full();
         }
     }
 }
@@ -165,6 +110,6 @@ void run_day23()
     test("67384529", day23(sample, 100));
     gogogo(day23(input, 100), "25368479"s);
 
-    test(149245887792ll, day23_2(sample));
-    //gogogo(day23_2(LOAD(23)));
+    nest(149245887792ll, day23_2(sample));
+    nonono(day23_2(input));
 }
